@@ -13,9 +13,15 @@ struct accounts{
 	struct accounts * nextAcc;
 };
 
+struct connection{
+	char messages[150][100];
+	int messageCount;
+};
+
 struct friendList{
 	char userName[20];
 	struct user * acc;
+	struct connection * connect;
 	struct friendList * nextFriend;
 };
 
@@ -32,11 +38,13 @@ struct Post{
 
 
 
+
+
 void displayFriends(struct user * dumUser);
 void create_account();
 struct user * search_username(char * str);
 void changePass(struct user * dumUser);
-void addFriend(struct user *dumUser, struct user * friendAdd);
+void addFriend(struct user *dumUser, struct user * friendAdd, struct connection * connect);
 void enter_session(struct user * dumUser);
 void displayAccounts();
 void displayFriends(struct user * dumUser);
@@ -46,6 +54,7 @@ void deleteAccount(struct user *dumUser);
 void addPost(struct user *dumUser);
 void displayPost(struct user *dumUser);
 struct user * findFriend(struct user *dumUser, char * str);
+void messageUser(struct user *dumUser, struct user * friendAdd);
 
 struct user *nullUser;
 //Linked list of users(a sub to to array of pointers)

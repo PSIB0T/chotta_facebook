@@ -68,7 +68,7 @@ struct user * search_username(char * str){
 }
 
 
-void addFriend(struct user *dumUser, struct user * friendAdd){
+void addFriend(struct user *dumUser, struct user * friendAdd, struct connection * connect){
 	struct friendListLinked * friendlistlink = startFriendList;
 	while(friendlistlink != NULL && strcmp(friendlistlink->friend->userName, dumUser->userName) != 0){
 		friendlistlink = friendlistlink->nextFriendList;
@@ -79,13 +79,22 @@ void addFriend(struct user *dumUser, struct user * friendAdd){
 	}
 
 	struct friendList * tempFriendList = (struct friendList *)(malloc(sizeof(struct friendList)));
+	
 	tempFriendList->nextFriend = NULL;
 	tempFriendList->acc = friendAdd;
+	tempFriendList->connect  = connect;
 	
 	struct friendList * temp = friendlistlink->friend;
-	while(temp->nextFriend != NULL)
+	while(temp->nextFriend != NULL && temp->nextFriend->acc != friendAdd)
 		temp = temp->nextFriend;
-	temp->nextFriend = tempFriendList;
+	if(temp->nextFriend == NULL)
+		temp->nextFriend = tempFriendList;
+	else if(temp->nextFriend->acc == friendAdd){
+		printf("%s is already your friend\n",temp->nextFriend->acc->userName );
+		free(connect);
+		return;
+	}
+	
 }
 
 void changePass(struct user * dumUser){
@@ -114,8 +123,11 @@ void changePass(struct user * dumUser){
 
 void enter_session(struct user * dumUser){
 	char str[20];
+	char mess[100];
 	char choice;
 	char yOrN;
+	int i;
+	struct connection * connect;
 	struct user * friendAdd;
 	do{
 		printf("Welcome, %s!\n", dumUser->name);
@@ -126,6 +138,7 @@ void enter_session(struct user * dumUser){
 		printf("5. To add a post.\n");
 		printf("6. To checkout your posts.\n");
 		printf("7. To go to friend's timeline.\n");
+		printf("8. To message a friend\n");
 		printf("q. To quit\n");
 		scanf("%c", &choice);
 		getchar();
@@ -138,8 +151,11 @@ void enter_session(struct user * dumUser){
 					printf("There isn't such account\n");
 					break;
 				}
-				addFriend(dumUser, friendAdd);
-				addFriend(friendAdd, dumUser);
+				connect = (struct connection * )(malloc(sizeof(struct connection)));
+				connect->messageCount = 0;
+				addFriend(dumUser, friendAdd, connect);
+				if(connect != NULL)
+					addFriend(friendAdd, dumUser, connect);
 				break;
 			case '2':
 				displayFriends(dumUser);
@@ -182,6 +198,20 @@ void enter_session(struct user * dumUser){
 				displayPost(friendAdd);
 
 				
+				break;
+			case '8':
+				start2:
+				displayFriends(dumUser);
+				printf("\n\nSelect a username\n");
+				gets_f(str, 20);
+				friendAdd = findFriend(dumUser, str);
+				if(friendAdd == nullUser){
+					printf("This particular username is not your friend\n");
+					goto start2;
+				}
+				printf("\t\t%s\t\t\n",friendAdd->name );
+				messageUser(dumUser, friendAdd);
+
 				break;
 
 			case 'q':
@@ -369,3 +399,47 @@ void displayPost(struct user *dumUser){
 	}
 	
 }
+
+
+void messageUser(struct user *dumUser, struct user * friendAdd){
+	int i;
+	char choice;
+	char str[100];
+	char str2[25];
+	strcpy(str2, dumUser->userName);
+	strcat(str2, ":  ");
+	struct friendListLinked * friendlistlink = startFriendList;
+	while(friendlistlink != NULL && strcmp(friendlistlink->friend->userName, dumUser->userName) != 0){
+		friendlistlink = friendlistlink->nextFriendList;
+	}
+	if(friendlistlink == NULL){
+		printf("Such account doesn't exists\n");
+		return;
+	}
+	struct friendList * friendlist = friendlistlink->friend;
+	if(friendlist->nextFriend == NULL){
+		printf("You don't have any friends! :( \n");
+		return;
+	}
+	friendlist = friendlist->nextFriend;
+	while(friendlist != NULL && friendlist->acc != friendAdd){
+		friendlist = friendlist->nextFriend;
+	}
+	if(friendlist == NULL){
+		printf("You don't have a friend by this name\n");
+		return;
+	}
+
+	printf("Enter messages or QUIT to quit\n");
+
+	for(i = 0; i < friendlist->connect->messageCount; i++)
+		printf("%s\n\n\n", friendlist->connect->messages[i]);
+	gets_f(str, 100);
+	while(strcmp(str, "QUIT") != 0){
+		strcat(str2, str);
+		strcpy(friendlist->connect->messages[friendlist->connect->messageCount], str2);
+		friendlist->connect->messageCount++;
+		gets_f(str, 100);
+	}
+}
+
